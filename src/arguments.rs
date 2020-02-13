@@ -5,12 +5,7 @@ use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::path::Path;
 
-use clap::{App, Arg, ArgMatches};
-
-pub enum Operation {
-    Intersect(),
-    SubsetTest(),
-}
+use clap::{App, AppSettings, Arg, ArgMatches};
 
 pub struct Options {
     pub left: HashSet<String>,
@@ -18,22 +13,42 @@ pub struct Options {
     pub operation: Operation,
 }
 
-pub fn parse_args() -> Options {
-    let args = parse_raw_args();
+pub enum Operation {
+    Intersect(),
+    SubsetTest(),
+}
 
-    Options {
-        left: args.value_of("left").map(file_to_hashset).unwrap(),
-        right: args.value_of("right").map(file_to_hashset).unwrap(),
-        operation: match args.value_of("operation") {
-            Some("intersect") => Operation::Intersect(),
-            Some("subset-test") => Operation::SubsetTest(),
-            // Any match here is a programming error
-            any => panic!("Unexpected operation {:?}", any),
-        },
+impl Options {
+    pub fn from_stdin() -> Self {
+        Options::from_matches(create_clap_app().get_matches())
+    }
+
+    #[cfg(test)]
+    pub fn from_iterable<I, T>(iter: I) -> Self
+    where I: IntoIterator<Item = T>,
+          T: Into<std::ffi::OsString> + Clone,
+    {
+        Options::from_matches(
+            create_clap_app()
+            .setting(AppSettings::NoBinaryName)
+            .get_matches_from(iter))
+    }
+
+    fn from_matches<'a>(matches: ArgMatches<'a>) -> Self {
+        Options {
+            left: matches.value_of("left").map(file_to_hashset).unwrap(),
+            right: matches.value_of("right").map(file_to_hashset).unwrap(),
+            operation: match matches.value_of("operation") {
+                Some("intersect") => Operation::Intersect(),
+                Some("subset-test") => Operation::SubsetTest(),
+                // Any match here is a programming error
+                any => panic!("Unexpected operation {:?}", any),
+            },
+        }
     }
 }
 
-fn parse_raw_args<'a>() -> ArgMatches<'a> {
+fn create_clap_app<'a, 'b>() -> App<'a, 'b>{
     App::new("sets")
         .version(clap::crate_version!())
         .arg(
@@ -58,7 +73,6 @@ fn parse_raw_args<'a>() -> ArgMatches<'a> {
                 .index(1)
                 .possible_values(&["intersect", "subset-test"]),
         )
-        .get_matches()
 }
 
 fn validate_is_file(value: String) -> Result<(), String> {

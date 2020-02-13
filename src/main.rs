@@ -2,26 +2,84 @@ mod arguments;
 
 use std::collections::HashSet;
 
+use itertools::Itertools;
+
 use arguments::Operation::*;
+use arguments::Options;
 
 fn main() {
-    let options = arguments::parse_args();
-    match options.operation {
-        Intersect() => intersect(options.left, options.right),
-        SubsetTest() => subset_test(options.left, options.right),
-    }
+    let options = Options::from_stdin();
+    let output = invoke(options);
+    println!("{}", output);
 }
 
-fn intersect(left: HashSet<String>, right: HashSet<String>) {
-    for element in left.intersection(&right) {
-        println!("{}", element);
-    }
+fn invoke(options: Options) -> String {
+    let f = match options.operation {
+        Intersect() => intersect,
+        SubsetTest() => subset_test,
+    };
+    
+    f(&options.left, &options.right)
 }
 
-fn subset_test(left: HashSet<String>, right: HashSet<String>) {
+fn intersect(left: &HashSet<String>, right: &HashSet<String>) -> String {
+    left.intersection(&right).join("\n")
+}
+
+fn subset_test(left: &HashSet<String>, right: &HashSet<String>) -> String {
     if left.is_subset(&right) {
-        println!("true");
+        String::from("true")
     } else {
-        println!("false");
+        String::from("false")
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn with_files<F>(left_content: &str, right_content: &str, f: F)
+    where F: Fn(&std::path::Path, &std::path::Path) -> ()
+    {
+        // setup
+        let left_file = tempfile::NamedTempFile::new().unwrap();
+        let right_file = tempfile::NamedTempFile::new().unwrap();
+        std::fs::write(&left_file, left_content).unwrap();
+        std::fs::write(&right_file, right_content).unwrap();
+
+        // test
+        f(&left_file.path(), &right_file.path());
+
+        // teardown
+        std::fs::remove_file(left_file.path()).unwrap();
+        std::fs::remove_file(right_file.path()).unwrap();
+    }
+
+    #[test]
+    fn test_intersect() {
+        with_files("A\nB\nC\nD\nE", "B\nD", |left, right| {
+            let options = Options::from_iterable(vec![
+                "intersect",
+                "--left", left.to_str().unwrap(),
+                "--right", right.to_str().unwrap(),
+            ]);
+
+            assert_eq!("B\nD", invoke(options),
+                "Should return the intersection");
+        });
+    }
+
+    #[test]
+    fn test_subset_test() {
+        with_files("A\nB\n", "X\nA\nY\nB\nZ", |left, right| {
+            let options = Options::from_iterable(vec![
+                "subset-test",
+                "--left", left.to_str().unwrap(),
+                "--right", right.to_str().unwrap()
+            ]);
+
+            assert_eq!("true", invoke(options),
+                "Should return 'true' when left is a subset of right");
+        })
     }
 }
