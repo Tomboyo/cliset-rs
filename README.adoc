@@ -1,0 +1,19 @@
+= Cliset
+
+A command-line tool which treats files of text as sets and lets the user perform set logic with them.
+
+== Examples
+
+```
+$ echo "A\nB" > ab.txt
+$ echo "X\nA\nY\nB\nZ" > xaybz.txt
+
+# test if --left is a subset of --right
+$ cliset subset-test --left ab.txt --right xaybz.txt
+true
+
+# get the intersection of --left and --right
+$ cliset intersect --left xaybz.txt --right ab.txt
+A
+B
+```

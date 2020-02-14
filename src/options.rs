@@ -56,20 +56,33 @@ fn create_clap_app<'a, 'b>() -> App<'a, 'b>{
                 .short("l")
                 .long("left")
                 .takes_value(true)
-                .required(true),
+                .required(true)
+                .help("A newline-delimited file whose lines should be \
+                       interpreted as elements of a set. Lines are stripped of \
+                       whitespace and empty lines are ignored."),
         )
         .arg(
             Arg::with_name("right")
                 .short("r")
                 .long("right")
                 .takes_value(true)
-                .required(true),
+                .required(true)
+                .help("A newline-delimited file whose lines should be \
+                       interpreted as elements of a set. Lines are stripped of \
+                       whitespace and empty lines are ignored."),
         )
         .arg(
             Arg::with_name("operation")
                 .required(true)
                 .index(1)
-                .possible_values(&["intersect", "subset-test"]),
+                .possible_values(&["intersect", "subset-test"])
+                .help("What operation to perform on the sets")
+                .long_help("intersect: print the intersection of the two files \
+                            (in encounter-order of lines in the --left file).\
+                            \n\n\
+                            subset-test: print 'true' if --left is a subset of \
+                            --right. Print 'false' otherwise.")
+                .hide_possible_values(true),
         )
 }
 
