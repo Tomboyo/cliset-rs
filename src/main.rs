@@ -28,7 +28,6 @@ fn intersect(left: &BTreeSet<String>, right: &BTreeSet<String>) -> String {
 }
 
 fn subset_test(left: &BTreeSet<String>, right: &BTreeSet<String>) -> String {
-    println!("Left: {:?}, right: {:?}", &left, &right);
     if left.is_subset(&right) {
         String::from("true")
     } else {
@@ -72,6 +71,20 @@ mod tests {
     }
 
     #[test]
+    fn test_intersect_ignores_whitespace() {
+        with_files("A\n  \n B \n\n", "  \n \nB\nA\n\n", |left, right| {
+            let options = Options::from_iterable(vec![
+                "intersect",
+                "--left", left.to_str().unwrap(),
+                "--right", right.to_str().unwrap()
+            ]).unwrap();
+
+            assert_eq!("A\nB", invoke(options),
+                "Should ignore all whitespace");
+        });
+    }
+
+    #[test]
     fn test_subset_test() {
         with_files("A\nB", "X\nA\nY\nB\nZ", |left, right| {
             let options = Options::from_iterable(vec![
@@ -82,6 +95,34 @@ mod tests {
 
             assert_eq!("true", invoke(options),
                 "Should return 'true' when left is a subset of right");
+        })
+    }
+
+    #[test]
+    fn test_subset_test_when_not_subset() {
+        with_files("X", "Y", |left, right| {
+            let options = Options::from_iterable(vec![
+                "subset-test",
+                "--left", left.to_str().unwrap(),
+                "--right", right.to_str().unwrap()
+            ]).unwrap();
+
+            assert_eq!("false", invoke(options),
+                "Should return 'false' when left is not a subset of right");
+        })
+    }
+
+    #[test]
+    fn test_subset_test_ignore_whitespace_lines() {
+        with_files("A\nB\n  \n\n", "X\nA\nB\nY", |left, right| {
+            let options = Options::from_iterable(vec![
+                "subset-test",
+                "--left", left.to_str().unwrap(),
+                "--right", right.to_str().unwrap()
+            ]).unwrap();
+
+            assert_eq!("true", invoke(options),
+                "Should ignore all whitespace");
         })
     }
 }

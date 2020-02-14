@@ -86,5 +86,11 @@ fn validate_is_file(value: String) -> Result<(), String> {
 
 fn read_treeset(path: &str) -> Result<BTreeSet<String>, Error> {
     std::fs::read_to_string(path)
-        .map(|s| s.split("\n").map(String::from).collect())
+        .map(|s| {
+            s.split("\n")
+                .map(&str::trim)
+                .filter(|s| !s.is_empty())
+                .map(String::from)
+                .collect()
+        })
 }
