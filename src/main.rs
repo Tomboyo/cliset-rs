@@ -4,8 +4,8 @@ use std::collections::BTreeSet;
 
 use itertools::Itertools;
 
-use options::Operation::*;
-use options::Options;
+use crate::options::Operation::*;
+use crate::options::Options;
 
 fn main() {
     match Options::from_stdin().map(invoke) {
