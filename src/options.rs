@@ -1,7 +1,6 @@
 extern crate clap;
 
 use std::collections::BTreeSet;
-use std::path::Path;
 use std::io::Error;
 
 use clap::{App, Arg, ArgMatches};
@@ -57,7 +56,6 @@ fn create_clap_app<'a, 'b>() -> App<'a, 'b>{
                 .short("l")
                 .long("left")
                 .takes_value(true)
-                .validator(validate_is_file)
                 .required(true),
         )
         .arg(
@@ -65,7 +63,6 @@ fn create_clap_app<'a, 'b>() -> App<'a, 'b>{
                 .short("r")
                 .long("right")
                 .takes_value(true)
-                .validator(validate_is_file)
                 .required(true),
         )
         .arg(
@@ -74,14 +71,6 @@ fn create_clap_app<'a, 'b>() -> App<'a, 'b>{
                 .index(1)
                 .possible_values(&["intersect", "subset-test"]),
         )
-}
-
-fn validate_is_file(value: String) -> Result<(), String> {
-    if Path::new(&value).exists() {
-        Ok(())
-    } else {
-        Err(format!("Cannot find or lack permissions to access '{}'", &value))
-    }
 }
 
 fn read_treeset(path: &str) -> Result<BTreeSet<String>, Error> {
