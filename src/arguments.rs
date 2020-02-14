@@ -1,15 +1,16 @@
 extern crate clap;
 
-use std::collections::HashSet;
-use std::fs::File;
-use std::io::{BufRead, BufReader};
+use std::collections::BTreeSet;
 use std::path::Path;
+use std::io::Error;
 
-use clap::{App, AppSettings, Arg, ArgMatches};
+use clap::{App, Arg, ArgMatches};
+#[cfg(test)]
+use clap::AppSettings;
 
 pub struct Options {
-    pub left: HashSet<String>,
-    pub right: HashSet<String>,
+    pub left: BTreeSet<String>,
+    pub right: BTreeSet<String>,
     pub operation: Operation,
 }
 
@@ -19,12 +20,12 @@ pub enum Operation {
 }
 
 impl Options {
-    pub fn from_stdin() -> Self {
+    pub fn from_stdin() -> Result<Self, Error> {
         Options::from_matches(create_clap_app().get_matches())
     }
 
     #[cfg(test)]
-    pub fn from_iterable<I, T>(iter: I) -> Self
+    pub fn from_iterable<I, T>(iter: I) -> Result<Self, Error>
     where I: IntoIterator<Item = T>,
           T: Into<std::ffi::OsString> + Clone,
     {
@@ -34,17 +35,17 @@ impl Options {
             .get_matches_from(iter))
     }
 
-    fn from_matches<'a>(matches: ArgMatches<'a>) -> Self {
-        Options {
-            left: matches.value_of("left").map(file_to_hashset).unwrap(),
-            right: matches.value_of("right").map(file_to_hashset).unwrap(),
-            operation: match matches.value_of("operation") {
-                Some("intersect") => Operation::Intersect(),
-                Some("subset-test") => Operation::SubsetTest(),
-                // Any match here is a programming error
-                any => panic!("Unexpected operation {:?}", any),
-            },
-        }
+    fn from_matches<'a>(matches: ArgMatches<'a>) -> Result<Self, Error> {
+        let left = read_treeset(matches.value_of("left").unwrap())?;
+        let right = read_treeset(matches.value_of("right").unwrap())?;
+        let operation = match matches.value_of("operation") {
+            Some("intersect") => Operation::Intersect(),
+            Some("subset-test") => Operation::SubsetTest(),
+            // Any match here is a programming error
+            any => panic!("Unexpected operation {:?}", any),
+        };
+
+        Ok(Options { left, right, operation })
     }
 }
 
@@ -79,16 +80,11 @@ fn validate_is_file(value: String) -> Result<(), String> {
     if Path::new(&value).exists() {
         Ok(())
     } else {
-        // TODO: report missing v. permission denied
-        Err(format!("'{}' is not a regular file", &value))
+        Err(format!("Cannot find or lack permissions to access '{}'", &value))
     }
 }
 
-// read file into hashset or else panic
-fn file_to_hashset(path: &str) -> HashSet<String> {
-    File::open(path)
-        .map(BufReader::new)
-        .map(BufRead::lines)
-        .map(|iter| iter.map(Result::unwrap).collect())
-        .unwrap()
+fn read_treeset(path: &str) -> Result<BTreeSet<String>, Error> {
+    std::fs::read_to_string(path)
+        .map(|s| s.split("\n").map(String::from).collect())
 }

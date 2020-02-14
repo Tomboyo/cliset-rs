@@ -1,6 +1,6 @@
 mod arguments;
 
-use std::collections::HashSet;
+use std::collections::BTreeSet;
 
 use itertools::Itertools;
 
@@ -8,9 +8,10 @@ use arguments::Operation::*;
 use arguments::Options;
 
 fn main() {
-    let options = Options::from_stdin();
-    let output = invoke(options);
-    println!("{}", output);
+    match Options::from_stdin().map(invoke) {
+        Err(e) => println!("Error: {}", e),
+        Ok(output) => println!("{}", output),
+    }
 }
 
 fn invoke(options: Options) -> String {
@@ -22,11 +23,12 @@ fn invoke(options: Options) -> String {
     f(&options.left, &options.right)
 }
 
-fn intersect(left: &HashSet<String>, right: &HashSet<String>) -> String {
+fn intersect(left: &BTreeSet<String>, right: &BTreeSet<String>) -> String {
     left.intersection(&right).join("\n")
 }
 
-fn subset_test(left: &HashSet<String>, right: &HashSet<String>) -> String {
+fn subset_test(left: &BTreeSet<String>, right: &BTreeSet<String>) -> String {
+    println!("Left: {:?}, right: {:?}", &left, &right);
     if left.is_subset(&right) {
         String::from("true")
     } else {
@@ -62,7 +64,7 @@ mod tests {
                 "intersect",
                 "--left", left.to_str().unwrap(),
                 "--right", right.to_str().unwrap(),
-            ]);
+            ]).unwrap();
 
             assert_eq!("B\nD", invoke(options),
                 "Should return the intersection");
@@ -71,12 +73,12 @@ mod tests {
 
     #[test]
     fn test_subset_test() {
-        with_files("A\nB\n", "X\nA\nY\nB\nZ", |left, right| {
+        with_files("A\nB", "X\nA\nY\nB\nZ", |left, right| {
             let options = Options::from_iterable(vec![
                 "subset-test",
                 "--left", left.to_str().unwrap(),
                 "--right", right.to_str().unwrap()
-            ]);
+            ]).unwrap();
 
             assert_eq!("true", invoke(options),
                 "Should return 'true' when left is a subset of right");
