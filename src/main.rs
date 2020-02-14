@@ -1,11 +1,11 @@
-mod arguments;
+mod options;
 
 use std::collections::BTreeSet;
 
 use itertools::Itertools;
 
-use arguments::Operation::*;
-use arguments::Options;
+use options::Operation::*;
+use options::Options;
 
 fn main() {
     match Options::from_stdin().map(invoke) {

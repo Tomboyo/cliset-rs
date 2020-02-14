@@ -93,4 +93,7 @@ fn read_treeset(path: &str) -> Result<BTreeSet<String>, Error> {
                 .map(String::from)
                 .collect()
         })
+        .map_err(|e| Error::new(
+            e.kind(),
+            format!("Cannot read file '{}': {}", path, e)))
 }
